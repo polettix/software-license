@@ -86,16 +86,14 @@ my %classes_for;
 sub _may_load_meta_keys {
   return if scalar keys %classes_for;
 
-  # Load one of the licenses in order to get its filename in %INC
-  require Software::License::Perl_5; # this surely exists
-  my $dirname = dirname($INC{'Software/License/Perl_5.pm'});
-
-  # Scan the directory for Perl modules, load them and get the meta_name
-  opendir my $dh, $dirname or croak "opendir('$dirname'): $!";
-  for my $file (readdir $dh) {
-    (my $submodule = $file) =~ s/\.pm\z//mxs or next;
-    require "Software/License/$file";
-    my $class = "Software::License::$submodule";
+  # use plugins from Module::Pluggable to get the names of the
+  # available licenses
+  require Module::Pluggable;
+  Module::Pluggable->import(
+    search_path => ['Software::License'],
+    require => 1,
+  );
+  for my $class (__PACKAGE__->plugins()) {
     push @{$classes_for{$class->meta_name()}}, $class;
   }
 
